@@ -26,6 +26,37 @@ Cart items are managed by `CartViewModel`. Items are keyed by product ID plus se
 ## Orders, Vendor Split, and Cancellation
 Orders are managed by `OrderViewModel` and remain grouped by vendor through `vendorGroups`. This supports vendor-based summaries, vendor-level cancellation, and vendor-specific refund handling. The orders screen separates orders into `In progress` and `Settled`. Cancellation is supported at item level, vendor level, and full-order level. Refund amounts are calculated dynamically for the affected active items.
 
+## Getting Started
+
+### Prerequisites
+- **Android Studio** (Koala or later recommended)
+- **JDK 17**
+- **Android SDK 34**
+
+### Cloning and Building
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   ```
+2. Open the project in Android Studio.
+3. Wait for Gradle sync to complete.
+4. Build the project:
+   - Go to `Build > Make Project` or run `./gradlew assembleDebug` in the terminal.
+
+### Running the App
+- **Emulator/Device**: Select your device from the dropdown in the toolbar and click the **Run** (green play) button.
+- **Unit Tests**: Right-click the `src/test` folder and select `Run 'Tests in eu.ourmall'` or run `./gradlew test`.
+
+### Generating an APK
+To generate a debug APK for manual installation:
+1. In Android Studio, go to `Build > Build Bundle(s) / APK(s) > Build APK(s)`.
+2. Once finished, a notification will appear. Click **locate** to find the `app-debug.apk` file.
+3. Alternatively, run the following command in the terminal:
+   ```bash
+   ./gradlew assembleDebug
+   ```
+   The APK will be located at `app/build/outputs/apk/debug/app-debug.apk`.
+
 ## API Summary
 The product endpoint uses the base URL `https://mp160a575ce3a6471b72.free.beeceptor.com` and fetches products from `/data`. The response contains a `products` array with full metadata including `id`, `name`, `category`, `vendor`, `price`, and `options`.
 

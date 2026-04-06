@@ -54,7 +54,7 @@ fun MainContent(appState: AppState) {
 
 @Composable
 fun NavigationWrapper(appState: AppState) {
-    
+
     val currentRoute = appState.path.lastOrNull()
 
     Box(modifier = Modifier.fillMaxSize()) {
