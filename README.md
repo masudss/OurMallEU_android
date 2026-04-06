@@ -1,25 +1,33 @@
 # OurMallEU (Android)
 
 ## Overview
-OurMallEU is a Jetpack Compose multi-vendor ecommerce app prototype. It includes a splash screen, a searchable and filterable product catalog, configurable product detail pages, a multi-vendor cart, checkout and payment flows, and an order history experience with tracking, cancellation, and refund feedback. `AppState` is the central source of truth for products, cart state, checkout totals, payment progress, and stored orders.
+OurMallEU is a Jetpack Compose multi-vendor ecommerce app prototype. It includes a splash screen, a searchable and filterable product catalog, configurable product detail pages, a multi-vendor cart, checkout and payment flows, and an order history experience with tracking, cancellation, and refund feedback. The app follows a modular architecture where domain-specific logic is encapsulated in dedicated ViewModels, with `AppState` serving as a Facade and orchestrator for the entire application state.
 
 ## Technologies and Architecture
-The project is built with Kotlin and Jetpack Compose, and uses JUnit for unit tests. Backend work is handled with Coroutines, and the app follows a simple MVVM-style structure: models define the domain layer, views render the UI, `AppState` acts as the shared view model and state container, and `CommerceAPIClient` handles network communication.
+The project is built with Kotlin and Jetpack Compose, and uses JUnit for unit tests. Backend work is handled with Coroutines, and the app follows a clean MVVM-style structure:
+- **Models**: Domain-specific data structures (Product, Cart, Order, Payment) located in `eu.ourmall.models.[domain]`.
+- **ViewModels**: Business logic decomposed into domain-focused units (`ProductViewModel`, `CartViewModel`, `OrderViewModel`, `PaymentViewModel`) under `eu.ourmall.viewmodels.[domain]`.
+- **AppState**: An orchestrator/facade that delegates domain logic to sub-ViewModels while managing navigation and high-level application state.
+- **Service Layer**: `CommerceAPIClient` handles network communication, with client-side pagination for the product catalog.
 
 ## Structure
-`MainActivity.kt` bootstraps the app and owns navigation. The `models` package contains the core domain types for products, cart items, vendor sections, orders, and payment payloads. `services/CommerceServicing.kt` handles product fetches and payment submission. `viewmodels/AppState.kt` contains the core business logic for catalog loading, filtering, cart updates, checkout totals, order persistence, and cancellation. The `ui` package contains the catalog, product detail, cart, checkout, payment, orders, order details, and splash screens. `src/test` contains the unit tests for model and state logic.
+`MainActivity.kt` bootstraps the app and manages navigation using a stack-based approach. 
+- `eu.ourmall.models`: Contains the core domain types, now partitioned by domain.
+- `eu.ourmall.viewmodels`: Contains the business logic. Decomposed from a monolithic state into domain-specific ViewModels.
+- `eu.ourmall.ui`: Partitioned into `screens` and reusable `components` for each domain.
+- `src/test`: Contains a comprehensive suite of unit tests, also modularized to match the production code structure.
 
 ## Product List Logic
-The product list screen loads catalog data through `AppState.refreshProducts()` and paginates with `loadNextPageIfNeeded(currentProduct:)`. At the top of the screen, users can search by keyword and open filters for category, price range, and stock availability. Below that, the screen displays a rotating carousel and then a two-column product grid. Filtering is driven by shared logic in `AppState`, matching against product name, vendor name, summary, and categories, while category filtering is powered by the `category: List<String>` field on `Product`.
+The product list screen loads catalog data through `ProductViewModel` (accessed via `AppState`). It supports client-side pagination via `loadNextPageIfNeeded`. At the top of the screen, users can search by keyword and open filters for category, price range, and stock availability. Below that, the screen displays a rotating carousel and then a two-column product grid. Filtering logic matches against product name, vendor name, summary, and categories.
 
 ## Cart, Multi-Vendor Checkout, and Payment
-Cart items are keyed by product id plus selected options, which means the same product with different selected options is stored as separate cart lines. The cart groups items into vendor-based sections so that each vendor can be selected independently for checkout. The cart screen total excludes VAT, while the checkout screen includes VAT and discount calculations. When payment is submitted, the app builds a vendor-grouped request body, simulates payment processing, persists a new order into `successfulOrders`, and clears the purchased cart lines on success.
+Cart items are managed by `CartViewModel`. Items are keyed by product ID plus selected options. The cart groups items into vendor-based sections so that each vendor can be selected independently for checkout. Prices are strictly formatted in Naira (₦) using `CurrencyUtils`. When payment is submitted, `AppState` orchestrates the process by building a vendor-grouped request, triggering `PaymentViewModel` for processing, persisting the result via `OrderViewModel`, and clearing the cart.
 
 ## Orders, Vendor Split, and Cancellation
-Orders remain grouped by vendor end to end through `vendorGroups`, which allows the app to support vendor-based summaries, vendor-level cancellation, and vendor-specific refund handling. The orders screen separates orders into `In progress` and `Settled`, where an in-progress order still has at least one item that is not settled, and a settled order has all items either delivered or cancelled. Cancellation is supported at item level, vendor level, and full-order level. Refund amounts are calculated only for the affected active items, and state is tracked separately at order level (`inProgress`, `settled`) and item level (`pending`, `confirmed`, `shipped`, `delivered`, `cancelled`).
+Orders are managed by `OrderViewModel` and remain grouped by vendor through `vendorGroups`. This supports vendor-based summaries, vendor-level cancellation, and vendor-specific refund handling. The orders screen separates orders into `In progress` and `Settled`. Cancellation is supported at item level, vendor level, and full-order level. Refund amounts are calculated dynamically for the affected active items.
 
 ## API Summary
-The product endpoint currently uses the base URL `https://mp160a575ce3a6471b72.free.beeceptor.com` and fetches products from `/data`. The response contains a `products` array, and each product includes fields such as `id`, `name`, `category`, `imageURL`, `vendor`, `price`, `discountPercentage`, `offerEndsAt`, `quantityRemaining`, `summary`, `options`, and `status`.
+The product endpoint uses the base URL `https://mp160a575ce3a6471b72.free.beeceptor.com` and fetches products from `/data`. The response contains a `products` array with full metadata including `id`, `name`, `category`, `vendor`, `price`, and `options`.
 
 ```json
 {
@@ -44,7 +52,7 @@ The product endpoint currently uses the base URL `https://mp160a575ce3a6471b72.f
 }
 ```
 
-Add-to-cart is local-only in this prototype and stores product, selected options, and quantity in app state. Payment submission acts as order creation and sends a vendor-grouped payload containing vendor ids, product ids, quantities, unit prices, selected options, and a summary section for subtotal, discount, VAT, and grand total.
+Payment submission sends a vendor-grouped payload containing product details and a summary section for subtotal, discount, VAT, and grand total.
 
 ```json
 {
@@ -67,16 +75,4 @@ Add-to-cart is local-only in this prototype and stores product, selected options
 }
 ```
 
-Cancellation is currently local state logic inside `AppState`, but the supported scopes are already clear: item, vendor, and full order. A backend version of the same logic would typically accept an order id plus the cancellation scope, and optionally an item id or vendor id depending on the requested action.
-
-```json
-{ "orderId": "order-1", "scope": "item", "itemId": "item-1" }
-```
-
-```json
-{ "orderId": "order-1", "scope": "vendor", "vendorId": "vendor-a" }
-```
-
-```json
-{ "orderId": "order-1", "scope": "order" }
-```
+Cancellation logic is handled within the `OrderViewModel`, supporting three scopes: item, vendor, and full order.
