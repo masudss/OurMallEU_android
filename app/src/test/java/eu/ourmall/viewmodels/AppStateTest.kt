@@ -145,4 +145,80 @@ class AppStateTest {
         val updatedOrder = appState.order(order.id)!!
         assertEquals(ItemStatus.CANCELLED, updatedOrder.vendorGroups.first().items.first().status)
     }
+
+    @Test
+    fun `test search functionality`() = runTest {
+        val product1 = ProductSamples.sampleProducts.first { it.id == "shoe-1" } // "Runner Pro"
+        val product2 = ProductSamples.sampleProducts.first { it.id == "phone-1" } // "Galaxy S23"
+        
+        appState.products.addAll(listOf(product1, product2))
+        
+        appState.searchQuery = "Runner"
+        assertEquals(1, appState.filteredProducts.size)
+        assertEquals(product1.id, appState.filteredProducts.first().id)
+        
+        appState.searchQuery = "Galaxy"
+        assertEquals(1, appState.filteredProducts.size)
+        assertEquals(product2.id, appState.filteredProducts.first().id)
+        
+        appState.searchQuery = "Unknown"
+        assertEquals(0, appState.filteredProducts.size)
+        
+        appState.clearFilters()
+        assertEquals(2, appState.filteredProducts.size)
+    }
+
+    @Test
+    fun `test category filter`() = runTest {
+        val fashionProduct = ProductSamples.sampleProducts.first { it.id == "shoe-1" }
+        val techProduct = ProductSamples.sampleProducts.first { it.id == "phone-1" }
+        
+        appState.products.addAll(listOf(fashionProduct, techProduct))
+        
+        appState.updateFilter(FilterCriteria(category = "Fashion"))
+        assertEquals(1, appState.filteredProducts.size)
+        assertEquals(fashionProduct.id, appState.filteredProducts.first().id)
+        
+        appState.updateFilter(FilterCriteria(category = "Tech"))
+        assertEquals(1, appState.filteredProducts.size)
+        assertEquals(techProduct.id, appState.filteredProducts.first().id)
+
+        // Multiple categories
+        appState.updateFilter(FilterCriteria(category = "Men"))
+        assertEquals(1, appState.filteredProducts.size)
+        assertEquals(fashionProduct.id, appState.filteredProducts.first().id)
+    }
+
+    @Test
+    fun `test price range filter`() = runTest {
+        val product1 = ProductSamples.sampleProducts.first { it.id == "shoe-1" } // Price 120, Disc 15% -> 102
+        val product2 = ProductSamples.sampleProducts.first { it.id == "phone-1" } // Price 850, Disc 5% -> 807.50
+        
+        appState.products.addAll(listOf(product1, product2))
+        
+        // Min 50, Max 150 -> only product1
+        appState.updateFilter(FilterCriteria(minPrice = BigDecimal("50"), maxPrice = BigDecimal("150")))
+        assertEquals(1, appState.filteredProducts.size)
+        assertEquals(product1.id, appState.filteredProducts.first().id)
+        
+        // Min 500 -> only product2
+        appState.updateFilter(FilterCriteria(minPrice = BigDecimal("500")))
+        assertEquals(1, appState.filteredProducts.size)
+        assertEquals(product2.id, appState.filteredProducts.first().id)
+    }
+
+    @Test
+    fun `test in stock filter`() = runTest {
+        val inStockProduct = ProductSamples.sampleProducts.first { it.inStock }
+        val outOfStockProduct = ProductSamples.sampleProducts.first { !it.inStock }
+        
+        appState.products.addAll(listOf(inStockProduct, outOfStockProduct))
+        
+        appState.updateFilter(FilterCriteria(onlyInStock = true))
+        assertEquals(1, appState.filteredProducts.size)
+        assertEquals(inStockProduct.id, appState.filteredProducts.first().id)
+        
+        appState.updateFilter(FilterCriteria(onlyInStock = false))
+        assertEquals(2, appState.filteredProducts.size)
+    }
 }

@@ -138,7 +138,7 @@ fun PaymentView(appState: AppState) {
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 Text(
-                    "Your payment request groups products by vendor and sends that dictionary object to the payment API.",
+                    "Please make payment to confirm your purchase and alert the vendor to ship your item.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )

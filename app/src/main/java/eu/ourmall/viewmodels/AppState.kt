@@ -27,7 +27,7 @@ sealed class AppRoute {
     object Payment : AppRoute()
 }
 
-class AppState(private val service: CommerceServicing = PreviewCommerceService()) : ViewModel() {
+class AppState(private val service: CommerceServicing = CommerceAPIClient()) : ViewModel() {
 
     var path = mutableStateListOf<AppRoute>()
         private set
@@ -69,6 +69,11 @@ class AppState(private val service: CommerceServicing = PreviewCommerceService()
         private set
 
     var hasCompletedPayment by mutableStateOf(false)
+        private set
+
+    var searchQuery by mutableStateOf("")
+    
+    var filterCriteria by mutableStateOf(FilterCriteria())
         private set
 
     val heroBanners = listOf(
@@ -133,6 +138,37 @@ class AppState(private val service: CommerceServicing = PreviewCommerceService()
             return CheckoutTotals(subtotal.rounded(), discount.rounded(), BigDecimal.ZERO, subtotal.rounded())
         }
 
+    val filteredProducts: List<Product>
+        get() {
+            return products.filter { product ->
+                val matchesSearch = searchQuery.isEmpty() || 
+                    product.name.contains(searchQuery, ignoreCase = true) ||
+                    product.vendor.name.contains(searchQuery, ignoreCase = true)
+                
+                val matchesCategory = filterCriteria.category == null || 
+                    product.category.any { it.equals(filterCriteria.category!!, ignoreCase = true) }
+                
+                val matchesPrice = (filterCriteria.minPrice == null || product.discountedPrice >= filterCriteria.minPrice!!) &&
+                                  (filterCriteria.maxPrice == null || product.discountedPrice <= filterCriteria.maxPrice!!)
+                
+                val matchesStock = !filterCriteria.onlyInStock || product.inStock
+                
+                matchesSearch && matchesCategory && matchesPrice && matchesStock
+            }
+        }
+
+    val allCategories: List<String>
+        get() = products.flatMap { it.category }.distinct().sorted()
+
+    fun updateFilter(criteria: FilterCriteria) {
+        filterCriteria = criteria
+    }
+
+    fun clearFilters() {
+        filterCriteria = FilterCriteria()
+        searchQuery = ""
+    }
+
     fun start() {
         if (hasStarted) return
         hasStarted = true
@@ -158,7 +194,18 @@ class AppState(private val service: CommerceServicing = PreviewCommerceService()
             hasMoreProducts = firstPage.hasMorePages
             products.addAll(firstPage.items)
         } catch (e: Exception) {
-            productErrorMessage = e.message
+            if (service is CommerceAPIClient) {
+                try {
+                    val fallback = PreviewCommerceService().fetchProducts(1, pageSize)
+                    currentPage = fallback.page
+                    hasMoreProducts = fallback.hasMorePages
+                    products.addAll(fallback.items)
+                } catch (fallbackE: Exception) {
+                    productErrorMessage = e.message
+                }
+            } else {
+                productErrorMessage = e.message
+            }
         } finally {
             isLoadingProducts = false
         }

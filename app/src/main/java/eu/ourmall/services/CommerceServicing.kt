@@ -1,6 +1,9 @@
 package eu.ourmall.services
 
 import eu.ourmall.models.*
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.GET
 import java.util.UUID
 
 sealed class APIError(message: String) : Exception(message) {
@@ -10,6 +13,15 @@ sealed class APIError(message: String) : Exception(message) {
     object EmptyCheckout : APIError("Select at least one vendor before continuing to payment.")
     data class Transport(val msg: String) : APIError(msg)
 }
+
+interface CommerceAPI {
+    @GET("data")
+    suspend fun getProducts(): ProductListResponse
+}
+
+data class ProductListResponse(
+    val products: List<Product>
+)
 
 interface CommerceServicing {
     suspend fun fetchProducts(page: Int, pageSize: Int): ProductPage
@@ -40,15 +52,44 @@ class PreviewCommerceService : CommerceServicing {
     }
 }
 
-// CommerceAPIClient would normally use Retrofit or Ktor. 
-// For "line by line" logic replication, we will focus on the state management first.
 class CommerceAPIClient : CommerceServicing {
-    // Placeholder for actual implementation if needed, but AppState uses this or Preview
+    private val retrofit = Retrofit.Builder()
+        .baseUrl("https://mp160a575ce3a6471b72.free.beeceptor.com/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    private val api = retrofit.create(CommerceAPI::class.java)
+
     override suspend fun fetchProducts(page: Int, pageSize: Int): ProductPage {
-        throw APIError.Transport("Not implemented")
+        try {
+            val response = api.getProducts()
+            val allProducts = response.products
+            
+            // Client-side pagination since the new endpoint doesn't seem to support it
+            val startIndex = (page - 1) * pageSize
+            if (startIndex >= allProducts.size) {
+                return ProductPage(items = emptyList(), page = page, hasMorePages = false)
+            }
+            val endIndex = minOf(allProducts.size, startIndex + pageSize)
+            val pageItems = allProducts.subList(startIndex, endIndex)
+            
+            return ProductPage(
+                items = pageItems,
+                page = page,
+                hasMorePages = endIndex < allProducts.size
+            )
+        } catch (e: Exception) {
+            throw APIError.Transport(e.message ?: "Unknown error")
+        }
     }
 
     override suspend fun submitPayment(payload: Map<String, Any?>): PaymentResponse {
-        throw APIError.Transport("Not implemented")
+        // Mock payment submission as endpoint for payment wasn't provided
+        kotlinx.coroutines.delay(600)
+        return PaymentResponse(
+            orderId = UUID.randomUUID().toString(),
+            paymentReference = "PAY-${(1000..9999).random()}",
+            status = ItemStatus.PENDING.name.lowercase()
+        )
     }
 }

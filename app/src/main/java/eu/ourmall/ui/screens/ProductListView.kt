@@ -3,14 +3,17 @@ package eu.ourmall.ui.screens
 import androidx.compose.animation.*
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
@@ -23,17 +26,23 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import eu.ourmall.models.CurrencyUtils.toCurrencyText
+import eu.ourmall.models.FilterCriteria
 import eu.ourmall.models.Product
 import eu.ourmall.viewmodels.AppState
 import kotlinx.coroutines.delay
 import java.math.BigDecimal
+import java.util.*
 import kotlin.math.ceil
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,6 +50,7 @@ import kotlin.math.ceil
 fun ProductListView(appState: AppState) {
     var productPendingConfirmation by remember { mutableStateOf<Product?>(null) }
     var showAddedToCartIndicator by remember { mutableStateOf(false) }
+    var isFilterSheetOpen by remember { mutableStateOf(false) }
 
     val horizontalPadding = 16.dp
     val gridSpacing = 14.dp
@@ -54,58 +64,133 @@ fun ProductListView(appState: AppState) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Products") },
-                navigationIcon = {
-                    TextButton(onClick = { appState.goToOrders() }) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Text("Orders", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                            if (appState.ordersCount > 0) {
+            Column {
+                TopAppBar(
+                    title = { Text("Products") },
+                    navigationIcon = {
+                        TextButton(onClick = { appState.goToOrders() }) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.List,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text("Orders", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                if (appState.ordersCount > 0) {
+                                    Surface(
+                                        color = Color.Blue,
+                                        shape = CircleShape
+                                    ) {
+                                        Text(
+                                            "${appState.ordersCount}",
+                                            color = Color.White,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    actions = {
+                        Box(modifier = Modifier
+                            .padding(end = 10.dp)
+                            .clickable { appState.goToCart() }) {
+                            Icon(
+                                Icons.Default.ShoppingCart,
+                                contentDescription = "Cart",
+                                modifier = Modifier
+                                    .padding(12.dp)
+                                    .size(24.dp)
+                            )
+                            if (appState.cartCount > 0) {
                                 Surface(
-                                    color = Color.Blue,
-                                    shape = CircleShape
+                                    color = Color.Red,
+                                    shape = CircleShape,
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(top = 8.dp, end = 8.dp)
                                 ) {
                                     Text(
-                                        "${appState.ordersCount}",
+                                        "${appState.cartCount}",
                                         color = Color.White,
-                                        fontSize = 11.sp,
+                                        fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                        modifier = Modifier.padding(4.dp)
                                     )
                                 }
                             }
                         }
                     }
-                },
-                actions = {
-                    Box(modifier = Modifier.padding(end = 10.dp).clickable { appState.goToCart() }) {
-                        Icon(
-                            Icons.Default.ShoppingCart,
-                            contentDescription = "Cart",
-                            modifier = Modifier.padding(12.dp).size(24.dp)
-                        )
-                        if (appState.cartCount > 0) {
-                            Surface(
-                                color = Color.Red,
-                                shape = CircleShape,
-                                modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp)
-                            ) {
-                                Text(
-                                    "${appState.cartCount}",
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(4.dp)
-                                )
+                )
+
+                // Search Bar and Filter Button
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TextField(
+                        value = appState.searchQuery,
+                        onValueChange = { appState.searchQuery = it },
+                        placeholder = { Text("Search products...") },
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent
+                        ),
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (appState.searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { appState.searchQuery = "" }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Clear search")
+                                }
                             }
+                        },
+                        singleLine = true
+                    )
+
+                    IconButton(
+                        onClick = { isFilterSheetOpen = true },
+                        modifier = Modifier
+                            .size(52.dp)
+                            .background(
+                                color = if (appState.filterCriteria != FilterCriteria()) MaterialTheme.colorScheme.primaryContainer else Color.White,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                    ) {
+                        BadgedBox(
+                            badge = {
+                                if (appState.filterCriteria != FilterCriteria()) {
+                                    Badge()
+                                }
+                            }
+                        ) {
+                            Icon(
+                                Icons.Default.FilterList,
+                                contentDescription = "Filter",
+                                tint = if (appState.filterCriteria != FilterCriteria()) MaterialTheme.colorScheme.primary else Color.Gray
+                            )
                         }
                     }
                 }
-            )
+            }
         }
     ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize().background(Color(0xFFF2F2F7))) {
+        Box(modifier = Modifier
+            .padding(padding)
+            .fillMaxSize()
+            .background(Color(0xFFF2F2F7))) {
             if (appState.isLoadingProducts && appState.products.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -116,7 +201,10 @@ fun ProductListView(appState: AppState) {
                 }
             } else if (appState.productErrorMessage != null && appState.products.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Icon(Icons.Default.WifiOff, contentDescription = null, modifier = Modifier.size(48.dp))
                         Text("Products unavailable", fontWeight = FontWeight.Bold)
                         Text(appState.productErrorMessage ?: "")
@@ -126,30 +214,49 @@ fun ProductListView(appState: AppState) {
                     }
                 }
             } else {
+                val products = appState.filteredProducts
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 16.dp)
+                    contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
-                    item {
-                        HeroCarouselView(banners = appState.heroBanners)
-                    }
-
-                    item {
-                        Column(modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Featured products", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Text(
-                                "Multi-vendor picks with live stock, offers, and configurable options.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.Gray
-                            )
+                    if (appState.searchQuery.isEmpty() && appState.filterCriteria == FilterCriteria()) {
+                        item {
+                            HeroCarouselView(banners = appState.heroBanners)
                         }
                     }
 
-                    val products = appState.products
+                    item {
+                        Column(
+                            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 20.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                if (appState.searchQuery.isNotEmpty() || appState.filterCriteria != FilterCriteria()) "Search results" else "Featured products",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            if (products.isEmpty()) {
+                                Text(
+                                    "No products found matching your criteria.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Gray
+                                )
+                            } else {
+                                Text(
+                                    "Showing ${products.size} products",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    }
+
                     val chunkedProducts = products.chunked(2)
                     itemsIndexed(chunkedProducts) { index, row ->
                         Row(
-                            modifier = Modifier.padding(horizontal = horizontalPadding).fillMaxWidth(),
+                            modifier = Modifier
+                                .padding(horizontal = horizontalPadding)
+                                .fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(gridSpacing)
                         ) {
                             row.forEach { product ->
@@ -160,8 +267,8 @@ fun ProductListView(appState: AppState) {
                                     onAddToCart = { productPendingConfirmation = product },
                                     modifier = Modifier.weight(1f)
                                 )
-                                // Trigger loading next page
-                                if (product == products.last()) {
+                                // Trigger loading next page only if not filtering
+                                if (product == products.last() && appState.searchQuery.isEmpty() && appState.filterCriteria == FilterCriteria()) {
                                     LaunchedEffect(product) {
                                         appState.loadNextPageIfNeeded(product)
                                     }
@@ -174,9 +281,14 @@ fun ProductListView(appState: AppState) {
                         Spacer(modifier = Modifier.height(gridSpacing))
                     }
 
-                    if (appState.isLoadingNextPage) {
+                    if (appState.isLoadingNextPage && appState.searchQuery.isEmpty() && appState.filterCriteria == FilterCriteria()) {
                         item {
-                            Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 CircularProgressIndicator()
                             }
                         }
@@ -184,8 +296,17 @@ fun ProductListView(appState: AppState) {
 
                     if (appState.productErrorMessage != null && appState.products.isNotEmpty()) {
                         item {
-                            Row(modifier = Modifier.padding(horizontal = horizontalPadding), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Icon(Icons.Default.Warning, contentDescription = null, tint = Color.Red, modifier = Modifier.size(16.dp))
+                            Row(
+                                modifier = Modifier.padding(horizontal = horizontalPadding),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Color.Red,
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Text(appState.productErrorMessage ?: "", color = Color.Red, fontSize = 12.sp)
                             }
                         }
@@ -202,6 +323,18 @@ fun ProductListView(appState: AppState) {
                 AddedToCartOverlay()
             }
         }
+    }
+
+    if (isFilterSheetOpen) {
+        FilterBottomSheet(
+            criteria = appState.filterCriteria,
+            availableCategories = appState.allCategories,
+            onApply = { 
+                appState.updateFilter(it)
+                isFilterSheetOpen = false
+            },
+            onDismiss = { isFilterSheetOpen = false }
+        )
     }
 
     productPendingConfirmation?.let { product ->
@@ -292,6 +425,140 @@ private fun HeroCarouselView(banners: List<String>) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun FilterBottomSheet(
+    criteria: FilterCriteria,
+    availableCategories: List<String>,
+    onApply: (FilterCriteria) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState()
+    var currentCriteria by remember { mutableStateOf(criteria) }
+    var minPriceInput by remember { mutableStateOf(criteria.minPrice?.toString() ?: "") }
+    var maxPriceInput by remember { mutableStateOf(criteria.maxPrice?.toString() ?: "") }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Filters", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                TextButton(onClick = {
+                    currentCriteria = FilterCriteria()
+                    minPriceInput = ""
+                    maxPriceInput = ""
+                }) {
+                    Text("Clear All")
+                }
+            }
+
+            // Category Selection
+            if (availableCategories.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Category", fontWeight = FontWeight.SemiBold)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        availableCategories.forEach { category ->
+                            FilterChip(
+                                selected = currentCriteria.category == category,
+                                onClick = {
+                                    currentCriteria = currentCriteria.copy(
+                                        category = if (currentCriteria.category == category) null else category
+                                    )
+                                },
+                                label = { Text(category) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Price Range
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Price Range", fontWeight = FontWeight.SemiBold)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = minPriceInput,
+                        onValueChange = { 
+                            if (it.isEmpty() || it.all { char -> char.isDigit() || char == '.' }) {
+                                minPriceInput = it
+                            }
+                        },
+                        label = { Text("Min") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true
+                    )
+                    Text("-", fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = maxPriceInput,
+                        onValueChange = {
+                            if (it.isEmpty() || it.all { char -> char.isDigit() || char == '.' }) {
+                                maxPriceInput = it
+                            }
+                        },
+                        label = { Text("Max") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true
+                    )
+                }
+            }
+
+            // In Stock Toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .toggleable(
+                        value = currentCriteria.onlyInStock,
+                        onValueChange = { currentCriteria = currentCriteria.copy(onlyInStock = it) },
+                        role = Role.Checkbox
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("In Stock Only", fontWeight = FontWeight.SemiBold)
+                Switch(
+                    checked = currentCriteria.onlyInStock,
+                    onCheckedChange = null // Handled by toggleable row
+                )
+            }
+
+            Button(
+                onClick = {
+                    val finalCriteria = currentCriteria.copy(
+                        minPrice = minPriceInput.toBigDecimalOrNull(),
+                        maxPrice = maxPriceInput.toBigDecimalOrNull()
+                    )
+                    onApply(finalCriteria)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Apply Filters", modifier = Modifier.padding(vertical = 4.dp))
+            }
+        }
+    }
+}
 @Composable
 private fun AddedToCartOverlay() {
     Box(

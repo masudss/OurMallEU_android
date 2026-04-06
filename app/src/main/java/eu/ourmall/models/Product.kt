@@ -2,7 +2,8 @@ package eu.ourmall.models
 
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.*
 
 data class Vendor(
     val id: String,
@@ -16,6 +17,7 @@ data class Product(
     val vendor: Vendor,
     val price: BigDecimal,
     val discountPercentage: BigDecimal,
+    val category: List<String> = emptyList(),
     val offerEndsAt: Date?,
     val quantityRemaining: Int,
     val summary: String,
@@ -36,11 +38,22 @@ data class Product(
         val now = Date()
         val endsAt = offerEndsAt ?: return "No active offer"
 
-        return if (endsAt.before(now)) {
-            "Offer ended"
-        } else {
-            // Simple string for now, we can use a library or custom logic for "relative" time later if needed to match RelativeDateTimeFormatter
-            "Offer ends ${endsAt}" 
+        if (endsAt.before(now)) return "Offer ended"
+
+        val diff = endsAt.time - now.time
+        val minutes = diff / (1000 * 60)
+        val hours = minutes / 60
+        val days = hours / 24
+
+        return when {
+            days >= 2 -> {
+                val sdf = SimpleDateFormat("MMM d", Locale.getDefault())
+                "Offer ends ${sdf.format(endsAt)}"
+            }
+            days >= 1 -> "Offer ends tomorrow"
+            hours >= 1 -> "Offer ends in $hours ${if (hours == 1L) "hr" else "hrs"}"
+            minutes >= 1 -> "Offer ends in $minutes min"
+            else -> "Offer ends now"
         }
     }
 
@@ -83,6 +96,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-a", name = "BluePeak Sports"),
             price = BigDecimal(120),
             discountPercentage = BigDecimal(15),
+            category = listOf("clothing", "sports"),
             offerEndsAt = Date(System.currentTimeMillis() + 2 * 24 * 60 * 60 * 1000L),
             quantityRemaining = 8,
             summary = "Lightweight running shoes built for long city miles and daily training.",
@@ -98,6 +112,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-b", name = "NorthHub Electronics"),
             price = BigDecimal(240),
             discountPercentage = BigDecimal(10),
+            category = listOf("electronics", "tech"),
             offerEndsAt = Date(System.currentTimeMillis() + 10 * 60 * 60 * 1000L),
             quantityRemaining = 0,
             summary = "An everyday smart watch with health tracking and strong battery life.",
@@ -112,6 +127,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-a", name = "BluePeak Sports"),
             price = BigDecimal(85),
             discountPercentage = BigDecimal(5),
+            category = listOf("accessories"),
             offerEndsAt = Date(System.currentTimeMillis() + 1 * 24 * 60 * 60 * 1000L),
             quantityRemaining = 4,
             summary = "Structured carry bag with padded compartments and weather-ready fabric.",
@@ -126,6 +142,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-c", name = "ThreadHaus"),
             price = BigDecimal(72),
             discountPercentage = BigDecimal(20),
+            category = listOf("clothing"),
             offerEndsAt = Date(System.currentTimeMillis() + 28 * 60 * 60 * 1000L),
             quantityRemaining = 13,
             summary = "Heavyweight hoodie with a relaxed fit and brushed inner lining.",
@@ -141,6 +158,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-b", name = "NorthHub Electronics"),
             price = BigDecimal(96),
             discountPercentage = BigDecimal(12),
+            category = listOf("electronics"),
             offerEndsAt = Date(System.currentTimeMillis() + 3 * 24 * 60 * 60 * 1000L),
             quantityRemaining = 16,
             summary = "Portable Bluetooth speaker with crisp sound and all-day playback.",
@@ -155,6 +173,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-d", name = "Casa Nova"),
             price = BigDecimal(58),
             discountPercentage = BigDecimal(8),
+            category = listOf("home"),
             offerEndsAt = Date(System.currentTimeMillis() + 4 * 24 * 60 * 60 * 1000L),
             quantityRemaining = 7,
             summary = "Minimal desk lamp with dimmable warmth and a stable metal base.",
@@ -169,6 +188,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-d", name = "Casa Nova"),
             price = BigDecimal(180),
             discountPercentage = BigDecimal(18),
+            category = listOf("home"),
             offerEndsAt = Date(System.currentTimeMillis() + 5 * 24 * 60 * 60 * 1000L),
             quantityRemaining = 3,
             summary = "Soft upholstered lounge chair shaped for comfort and small spaces.",
@@ -183,6 +203,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-c", name = "ThreadHaus"),
             price = BigDecimal(28),
             discountPercentage = BigDecimal(0),
+            category = listOf("clothing"),
             offerEndsAt = null,
             quantityRemaining = 42,
             summary = "Soft jersey tee made for daily wear and easy layering.",
@@ -198,6 +219,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-e", name = "Kitchen Fold"),
             price = BigDecimal(64),
             discountPercentage = BigDecimal(14),
+            category = listOf("home", "kitchen"),
             offerEndsAt = Date(System.currentTimeMillis() + 36 * 60 * 60 * 1000L),
             quantityRemaining = 11,
             summary = "Fast-boil kettle with a clean spout and compact countertop footprint.",
@@ -212,6 +234,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-e", name = "Kitchen Fold"),
             price = BigDecimal(135),
             discountPercentage = BigDecimal(9),
+            category = listOf("home", "kitchen"),
             offerEndsAt = Date(System.currentTimeMillis() + 2 * 24 * 60 * 60 * 1000L),
             quantityRemaining = 6,
             summary = "Countertop blender designed for smoothies, soups, and frozen mixes.",
@@ -226,6 +249,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-b", name = "NorthHub Electronics"),
             price = BigDecimal(320),
             discountPercentage = BigDecimal(11),
+            category = listOf("electronics", "tech"),
             offerEndsAt = Date(System.currentTimeMillis() + 1 * 24 * 60 * 60 * 1000L),
             quantityRemaining = 5,
             summary = "Compact travel camera with sharp optics and simple manual controls.",
@@ -240,6 +264,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-d", name = "Casa Nova"),
             price = BigDecimal(720),
             discountPercentage = BigDecimal(16),
+            category = listOf("home"),
             offerEndsAt = Date(System.currentTimeMillis() + 6 * 24 * 60 * 60 * 1000L),
             quantityRemaining = 2,
             summary = "Large modular sofa with deep cushions and neutral upholstery.",
@@ -254,6 +279,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-b", name = "NorthHub Electronics"),
             price = BigDecimal(210),
             discountPercentage = BigDecimal(13),
+            category = listOf("electronics"),
             offerEndsAt = Date(System.currentTimeMillis() + 20 * 60 * 60 * 1000L),
             quantityRemaining = 14,
             summary = "Noise-cancelling headphones tuned for commuting and focused work.",
@@ -268,6 +294,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-a", name = "BluePeak Sports"),
             price = BigDecimal(145),
             discountPercentage = BigDecimal(7),
+            category = listOf("clothing", "sports"),
             offerEndsAt = Date(System.currentTimeMillis() + 3 * 24 * 60 * 60 * 1000L),
             quantityRemaining = 10,
             summary = "Durable outdoor boots with strong grip and weather-resistant materials.",
@@ -283,6 +310,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-a", name = "BluePeak Sports"),
             price = BigDecimal(32),
             discountPercentage = BigDecimal(6),
+            category = listOf("accessories", "sports"),
             offerEndsAt = Date(System.currentTimeMillis() + 1 * 24 * 60 * 60 * 1000L),
             quantityRemaining = 30,
             summary = "Insulated bottle that keeps drinks cold for long training days.",
@@ -297,6 +325,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-a", name = "BluePeak Sports"),
             price = BigDecimal(55),
             discountPercentage = BigDecimal(0),
+            category = listOf("sports"),
             offerEndsAt = null,
             quantityRemaining = 25,
             summary = "Extra thick non-slip yoga mat for all levels of practice.",
@@ -311,6 +340,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-b", name = "NorthHub Electronics"),
             price = BigDecimal(450),
             discountPercentage = BigDecimal(5),
+            category = listOf("electronics", "tech"),
             offerEndsAt = Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000L),
             quantityRemaining = 12,
             summary = "Powerful tablet for creators and professionals on the go.",
@@ -325,6 +355,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-d", name = "Casa Nova"),
             price = BigDecimal(42),
             discountPercentage = BigDecimal(10),
+            category = listOf("home"),
             offerEndsAt = Date(System.currentTimeMillis() + 2 * 24 * 60 * 60 * 1000L),
             quantityRemaining = 15,
             summary = "Adjustable desk lamp with energy-efficient LED bulb.",
@@ -339,6 +370,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-e", name = "Kitchen Fold"),
             price = BigDecimal(48),
             discountPercentage = BigDecimal(0),
+            category = listOf("home", "kitchen"),
             offerEndsAt = null,
             quantityRemaining = 20,
             summary = "Pre-seasoned cast iron skillet for perfect searing and baking.",
@@ -351,6 +383,7 @@ object ProductSamples {
             vendor = Vendor(id = "vendor-c", name = "ThreadHaus"),
             price = BigDecimal(65),
             discountPercentage = BigDecimal(12),
+            category = listOf("clothing"),
             offerEndsAt = Date(System.currentTimeMillis() + 3 * 24 * 60 * 60 * 1000L),
             quantityRemaining = 18,
             summary = "Classic oxford shirt made from premium cotton.",
