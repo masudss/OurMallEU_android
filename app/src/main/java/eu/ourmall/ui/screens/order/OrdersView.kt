@@ -1,4 +1,4 @@
-package eu.ourmall.ui.screens
+package eu.ourmall.ui.screens.order
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
@@ -20,8 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import eu.ourmall.models.*
-import eu.ourmall.models.CurrencyUtils.toCurrencyText
+import eu.ourmall.models.order.*
+import eu.ourmall.models.cart.CurrencyUtils.toCurrencyText
 import eu.ourmall.viewmodels.AppState
 import java.math.BigDecimal
 import java.text.SimpleDateFormat

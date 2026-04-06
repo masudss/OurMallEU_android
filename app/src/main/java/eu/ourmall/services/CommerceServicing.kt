@@ -1,6 +1,10 @@
 package eu.ourmall.services
 
-import eu.ourmall.models.*
+import eu.ourmall.models.order.ItemStatus
+import eu.ourmall.models.payment.PaymentResponse
+import eu.ourmall.models.product.Product
+import eu.ourmall.models.product.ProductPage
+import eu.ourmall.models.product.ProductSamples
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
@@ -45,9 +49,8 @@ class PreviewCommerceService : CommerceServicing {
     override suspend fun submitPayment(payload: Map<String, Any?>): PaymentResponse {
         kotlinx.coroutines.delay(600)
         return PaymentResponse(
-            orderId = UUID.randomUUID().toString(),
             paymentReference = "PAY-${(1000..9999).random()}",
-            status = ItemStatus.PENDING.name.lowercase()
+            success = true
         )
     }
 }
@@ -87,9 +90,8 @@ class CommerceAPIClient : CommerceServicing {
         // Mock payment submission as endpoint for payment wasn't provided
         kotlinx.coroutines.delay(600)
         return PaymentResponse(
-            orderId = UUID.randomUUID().toString(),
             paymentReference = "PAY-${(1000..9999).random()}",
-            status = ItemStatus.PENDING.name.lowercase()
+            success = true
         )
     }
 }

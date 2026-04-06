@@ -1,4 +1,4 @@
-package eu.ourmall.ui.screens
+package eu.ourmall.ui.screens.product
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.spring
@@ -10,7 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,11 +24,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import eu.ourmall.models.CurrencyUtils.toCurrencyText
-import eu.ourmall.models.Product
-import eu.ourmall.models.ProductSelection
+import eu.ourmall.models.cart.CurrencyUtils.toCurrencyText
+import eu.ourmall.models.product.Product
+import eu.ourmall.models.product.ProductSelection
 import eu.ourmall.viewmodels.AppState
 import kotlinx.coroutines.delay
 import java.math.BigDecimal

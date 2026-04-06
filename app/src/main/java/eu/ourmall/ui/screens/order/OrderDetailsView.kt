@@ -1,4 +1,4 @@
-package eu.ourmall.ui.screens
+package eu.ourmall.ui.screens.order
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
@@ -15,8 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import eu.ourmall.models.*
 import eu.ourmall.viewmodels.AppState
+import eu.ourmall.ui.components.order.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.math.BigDecimal

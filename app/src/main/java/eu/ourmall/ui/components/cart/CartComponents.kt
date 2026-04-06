@@ -1,14 +1,10 @@
-package eu.ourmall.ui.screens
+package eu.ourmall.ui.components.cart
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
-import androidx.compose.material.icons.filled.RemoveShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,61 +13,14 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import eu.ourmall.models.CartItem
-import eu.ourmall.models.CheckoutTotals
-import eu.ourmall.models.CurrencyUtils.toCurrencyText
-import eu.ourmall.models.VendorCartSection
+import eu.ourmall.models.cart.CartItem
+import eu.ourmall.models.cart.CheckoutTotals
+import eu.ourmall.models.cart.CurrencyUtils.toCurrencyText
+import eu.ourmall.models.cart.VendorCartSection
 import eu.ourmall.viewmodels.AppState
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CartView(appState: AppState) {
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Cart") })
-        },
-        bottomBar = {
-            if (appState.vendorSections.isNotEmpty()) {
-                Surface(
-                    modifier = Modifier.shadow(8.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 4.dp
-                ) {
-                    CartSummaryBar(
-                        totals = appState.cartTotals,
-                        selectionCount = appState.selectedSections.size,
-                        onCheckout = { appState.goToCheckout() }
-                    )
-                }
-            }
-        }
-    ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize().background(Color(0xFFF2F2F7))) {
-            if (appState.vendorSections.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Icon(Icons.Default.RemoveShoppingCart, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.Gray)
-                        Text("Your cart is empty", style = MaterialTheme.typography.headlineSmall, color = Color.Gray)
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp)
-                ) {
-                    items(appState.vendorSections) { section ->
-                        VendorCartCard(section = section, appState = appState)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun VendorCartCard(section: VendorCartSection, appState: AppState) {
+fun VendorCartCard(section: VendorCartSection, appState: AppState) {
     Surface(
         modifier = Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(22.dp)),
         shape = RoundedCornerShape(22.dp),
@@ -104,7 +53,7 @@ private fun VendorCartCard(section: VendorCartSection, appState: AppState) {
 }
 
 @Composable
-private fun CartItemRow(item: CartItem, appState: AppState) {
+fun CartItemRow(item: CartItem, appState: AppState) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -120,7 +69,6 @@ private fun CartItemRow(item: CartItem, appState: AppState) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Qty ${item.quantity}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
                 
-                // Simplified Stepper replacement for Android
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
                         onClick = { appState.updateQuantity(item.id, item.quantity - 1) },
@@ -143,7 +91,7 @@ private fun CartItemRow(item: CartItem, appState: AppState) {
 }
 
 @Composable
-private fun CartSummaryBar(totals: CheckoutTotals, selectionCount: Int, onCheckout: () -> Unit) {
+fun CartSummaryBar(totals: CheckoutTotals, selectionCount: Int, onCheckout: () -> Unit) {
     Column(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)

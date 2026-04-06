@@ -4,22 +4,24 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import eu.ourmall.ui.theme.OurMallEUTheme
-
 import androidx.activity.viewModels
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import eu.ourmall.ui.screens.*
-import eu.ourmall.viewmodels.AppRoute
+import androidx.compose.ui.Modifier
+import eu.ourmall.ui.screens.cart.CartView
+import eu.ourmall.ui.screens.cart.CheckoutView
+import eu.ourmall.ui.screens.common.SplashView
+import eu.ourmall.ui.screens.order.OrderDetailsView
+import eu.ourmall.ui.screens.order.OrdersView
+import eu.ourmall.ui.screens.payment.PaymentView
+import eu.ourmall.ui.screens.product.ProductDetailView
+import eu.ourmall.ui.screens.product.ProductListView
+import eu.ourmall.ui.theme.OurMallEUTheme
 import eu.ourmall.viewmodels.AppState
+import eu.ourmall.viewmodels.navigation.AppRoute
 
 class MainActivity : ComponentActivity() {
     private val appState: AppState by viewModels()
@@ -57,7 +59,7 @@ fun NavigationWrapper(appState: AppState) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         when (currentRoute) {
-            null -> ProductListView(appState)
+            null, is AppRoute.Home -> ProductListView(appState)
             is AppRoute.Cart -> CartView(appState)
             is AppRoute.ProductDetail -> ProductDetailView(
                 product = currentRoute.product,

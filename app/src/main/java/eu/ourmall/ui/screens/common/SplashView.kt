@@ -1,4 +1,4 @@
-package eu.ourmall.ui.screens
+package eu.ourmall.ui.screens.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

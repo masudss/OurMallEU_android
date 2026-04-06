@@ -1,4 +1,4 @@
-package eu.ourmall.models
+package eu.ourmall.models.product
 
 import java.math.BigDecimal
 
