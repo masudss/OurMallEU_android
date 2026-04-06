@@ -35,9 +35,6 @@ Orders are managed by `OrderViewModel` and remain grouped by vendor through `ven
 
 ### Cloning and Building
 1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   ```
 2. Open the project in Android Studio.
 3. Wait for Gradle sync to complete.
 4. Build the project:
