@@ -1,5 +1,7 @@
 # OurMallEU (Android)
 
+![App Demo](Screen_recording_20260406_194622.gif)
+
 ## Overview
 OurMallEU is a Jetpack Compose multi-vendor ecommerce app prototype. It includes a splash screen, a searchable and filterable product catalog, configurable product detail pages, a multi-vendor cart, checkout and payment flows, and an order history experience with tracking, cancellation, and refund feedback. The app follows a modular architecture where domain-specific logic is encapsulated in dedicated ViewModels, with `AppState` serving as a Facade and orchestrator for the entire application state.
 
